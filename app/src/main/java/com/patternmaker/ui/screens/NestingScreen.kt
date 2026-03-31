@@ -23,18 +23,17 @@ fun NestingScreen(
     pieces: List<PatternPiece>,
     onBack: () -> Unit
 ) {
-    val vm: NestingViewModel = viewModel()
+    val vm     = viewModel<NestingViewModel>()
     val layout = vm.layout
+    val report = vm.wasteReport
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "التعشيق على القماش",
+                    Text("التعشيق على القماش",
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Right
-                    )
+                        textAlign = TextAlign.Right)
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -43,7 +42,7 @@ fun NestingScreen(
                 },
                 actions = {
                     IconButton(onClick = { vm.autoNest(pieces) }) {
-                        Icon(Icons.Default.Refresh, "تعشيق أوتوماتيك")
+                        Icon(Icons.Default.Refresh, "تعشيق")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -56,13 +55,14 @@ fun NestingScreen(
         },
         bottomBar = {
             Column(modifier = Modifier.padding(12.dp)) {
+
                 // إدخال عرض القماش
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End
                 ) {
-                    Text("سم", style = MaterialTheme.typography.bodyMedium)
+                    Text("سم")
                     Spacer(Modifier.width(8.dp))
                     OutlinedTextField(
                         value = vm.fabricWidth,
@@ -91,27 +91,29 @@ fun NestingScreen(
                     )
                 }
 
-                Spacer(Modifier.height(8.dp))
-
-                // إحصائيات
-                layout?.let {
+                // تقرير الهدر
+                report?.let { r ->
+                    Spacer(Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        StatChip("الهدر", "%.1f%%".format(it.wastePercent))
-                        StatChip("الطول", "%.0f سم".format(it.fabricLength))
-                        StatChip("القطع", "${it.placedPieces.size}")
+                        StatCard("الهدر",   "%.1f%%".format(r.wastePercent),
+                            if (r.wastePercent < 20f) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.errorContainer)
+                        StatCard("الطول",   "%.0f سم".format(r.fabricLength))
+                        StatCard("المساحة", "%.0f سم²".format(r.usedArea))
+                        StatCard("القطع",   "${vm.layout?.placedPieces?.size}")
                     }
-                    Spacer(Modifier.height(8.dp))
                 }
 
-                // زر التعشيق
+                Spacer(Modifier.height(8.dp))
+
                 Button(
-                    onClick = { vm.autoNest(pieces) },
+                    onClick  = { vm.autoNest(pieces) },
                     modifier = Modifier.fillMaxWidth().height(48.dp)
                 ) {
-                    Text("تعشيق أوتوماتيك")
+                    Text("تعشيق أوتوماتيك ✦")
                 }
             }
         }
@@ -122,17 +124,13 @@ fun NestingScreen(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        "اضغط تعشيق أوتوماتيك للبدء",
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "أو اضبط عرض القماش أولاً",
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.outline
-                    )
+                    Text("اضبط عرض القماش ثم اضغط تعشيق",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(4.dp))
+                    Text("القماش المصري عادةً 150 سم",
+                        color = MaterialTheme.colorScheme.outline,
+                        style = MaterialTheme.typography.bodySmall)
                 }
             } else {
                 NestingCanvas(
@@ -147,16 +145,16 @@ fun NestingScreen(
 }
 
 @Composable
-private fun StatChip(label: String, value: String) {
-    Card(colors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.primaryContainer
-    )) {
+private fun StatCard(label: String, value: String,
+    containerColor: androidx.compose.ui.graphics.Color =
+        MaterialTheme.colorScheme.primaryContainer) {
+    Card(colors = CardDefaults.cardColors(containerColor = containerColor)) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(value, style = MaterialTheme.typography.titleMedium)
-            Text(label, style = MaterialTheme.typography.bodySmall)
+            Text(value, style = MaterialTheme.typography.titleSmall)
+            Text(label, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
