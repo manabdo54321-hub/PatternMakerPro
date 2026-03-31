@@ -7,86 +7,87 @@ object PatternEngine {
     fun generateTrouser(
         m: Measurements,
         model: TrouserModel
-    ): List<PatternPiece> {
-        val pieces = mutableListOf<PatternPiece>()
-        pieces.add(frontPanel(m, model))
-        pieces.add(backPanel(m, model))
-        pieces.add(waistband(m, model))
-        if (model.hasLegBand) pieces.add(legBand(m))
-        return pieces
+    ): List<PatternPiece> = buildList {
+        add(frontPanel(m, model))
+        add(backPanel(m, model))
+        add(waistband(m))
+        if (model.hasLegBand) add(legBand(m))
     }
 
-    // ── الأمامية ──────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════
+    // الأمامية (Front Panel)
+    // ══════════════════════════════════════════════════════════
     private fun frontPanel(m: Measurements, model: TrouserModel): PatternPiece {
-        val w  = FormulaEngine.frontWidth(m, model) + m.seamAllowance * 2
-        val h  = m.length + m.seamAllowance * 2
-        val cd = FormulaEngine.frontCrotchDepth(m, model)
-        val bw = FormulaEngine.bottomLegWidth(m, model)
+        val fw  = FormulaEngine.frontWidth(m, model)
+        val cd  = FormulaEngine.frontCrotchDepth(m, model)
+        val bw  = FormulaEngine.bottomLegWidth(m, model)
+        val sa  = m.seamAllowance
+        val len = m.length
 
+        // منحنيات دقيقة من CurveEngine
+        val crotchCurve = CurveEngine.frontCrotchCurve(cd, fw)
+        val waistCurve  = CurveEngine.frontWaistCurve(fw)
+        val innerLeg    = CurveEngine.innerLegCurve(len, cd, fw * 0.3f, bw * 0.4f)
+
+        // نقاط الشكل الكامل (مع هامش الخياطة)
         val points = listOf(
-            Point(0f, 0f),
-            Point(w, 0f),
-            Point(w, h),
-            Point((w - bw) / 2f, h),
-            Point(0f, cd),
-        )
-
-        val crotchCurve = BezierCurve(
-            start    = Point(0f, cd),
-            control1 = Point(0f, cd * 0.5f),
-            control2 = Point(w * 0.3f, 0f),
-            end      = Point(w, 0f)
+            Point(sa,       sa),                    // أعلى يسار
+            Point(fw + sa,  sa),                    // أعلى يمين
+            Point(fw + sa,  len + cd - sa),         // أسفل يمين
+            Point(bw + sa,  len + cd - sa),         // أسفل الساق
+            Point(sa,       cd + sa),               // الكيلوت
         )
 
         return PatternPiece(
-            id      = "front_panel",
-            nameAr  = "الأمامية",
-            points  = points,
-            curves  = listOf(crotchCurve),
+            id       = "front_panel",
+            nameAr   = "الأمامية",
+            points   = points,
+            curves   = listOf(crotchCurve, waistCurve, innerLeg),
             quantity = 2,
-            widthCm  = w,
-            heightCm = h + cd
+            widthCm  = fw + sa * 2,
+            heightCm = len + cd + sa * 2
         )
     }
 
-    // ── الخلفية ───────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════
+    // الخلفية (Back Panel)
+    // ══════════════════════════════════════════════════════════
     private fun backPanel(m: Measurements, model: TrouserModel): PatternPiece {
-        val w  = FormulaEngine.backWidth(m, model) + m.seamAllowance * 2
-        val h  = m.length + m.seamAllowance * 2
-        val cd = FormulaEngine.backCrotchDepth(m, model)
-        val bw = FormulaEngine.bottomLegWidth(m, model) + 2f
+        val bw  = FormulaEngine.backWidth(m, model)
+        val cd  = FormulaEngine.backCrotchDepth(m, model)
+        val blw = FormulaEngine.bottomLegWidth(m, model) + 2f
+        val sa  = m.seamAllowance
+        val len = m.length
+
+        val crotchCurve = CurveEngine.backCrotchCurve(cd, bw)
+        val waistCurve  = CurveEngine.backWaistCurve(bw)
+        val innerLeg    = CurveEngine.innerLegCurve(len, cd, bw * 0.3f, blw * 0.4f)
 
         val points = listOf(
-            Point(0f, 0f),
-            Point(w, 0f),
-            Point(w, h),
-            Point((w - bw) / 2f, h),
-            Point(0f, cd),
-        )
-
-        val crotchCurve = BezierCurve(
-            start    = Point(0f, cd),
-            control1 = Point(0f, cd * 0.4f),
-            control2 = Point(w * 0.4f, 0f),
-            end      = Point(w, 0f)
+            Point(sa,       sa),
+            Point(bw + sa,  sa),
+            Point(bw + sa,  len + cd - sa),
+            Point(blw + sa, len + cd - sa),
+            Point(sa,       cd + sa),
         )
 
         return PatternPiece(
             id       = "back_panel",
             nameAr   = "الخلفية",
             points   = points,
-            curves   = listOf(crotchCurve),
+            curves   = listOf(crotchCurve, waistCurve, innerLeg),
             quantity = 2,
-            widthCm  = w,
-            heightCm = h + cd
+            widthCm  = bw + sa * 2,
+            heightCm = len + cd + sa * 2
         )
     }
 
-    // ── الخصر ─────────────────────────────────────────────────
-    private fun waistband(m: Measurements, model: TrouserModel): PatternPiece {
+    // ══════════════════════════════════════════════════════════
+    // الخصر والكمّة — مستطيلات بسيطة
+    // ══════════════════════════════════════════════════════════
+    private fun waistband(m: Measurements): PatternPiece {
         val w = FormulaEngine.waistbandLength(m)
         val h = FormulaEngine.waistbandWidth()
-
         return PatternPiece(
             id       = "waistband",
             nameAr   = "الخصر",
@@ -97,11 +98,9 @@ object PatternEngine {
         )
     }
 
-    // ── كمة الساق ─────────────────────────────────────────────
     private fun legBand(m: Measurements): PatternPiece {
         val w = FormulaEngine.legBandLength(m)
         val h = FormulaEngine.legBandWidth()
-
         return PatternPiece(
             id       = "leg_band",
             nameAr   = "كمة الساق",
@@ -112,11 +111,8 @@ object PatternEngine {
         )
     }
 
-    // ── مساعد: مستطيل ─────────────────────────────────────────
     private fun rectPoints(w: Float, h: Float) = listOf(
-        Point(0f, 0f),
-        Point(w,  0f),
-        Point(w,  h),
-        Point(0f, h)
+        Point(0f, 0f), Point(w, 0f),
+        Point(w, h),   Point(0f, h)
     )
 }
