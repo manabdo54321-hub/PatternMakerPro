@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -26,13 +27,14 @@ fun NestingScreen(
     val vm     = viewModel<NestingViewModel>()
     val layout = vm.layout
     val report = vm.wasteReport
+    val sel    = vm.selectedPieceIndex
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text("التعشيق على القماش",
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier  = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Right)
                 },
                 navigationIcon = {
@@ -46,8 +48,8 @@ fun NestingScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor         = MaterialTheme.colorScheme.primary,
+                    titleContentColor      = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                     actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
@@ -56,7 +58,7 @@ fun NestingScreen(
         bottomBar = {
             Column(modifier = Modifier.padding(12.dp)) {
 
-                // إدخال عرض القماش
+                // عرض القماش
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -68,14 +70,15 @@ fun NestingScreen(
                         value = vm.fabricWidth,
                         onValueChange = { vm.fabricWidth = it },
                         modifier = Modifier.width(90.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal),
                         singleLine = true
                     )
                     Spacer(Modifier.width(12.dp))
                     Text("عرض القماش:", style = MaterialTheme.typography.bodyLarge)
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
 
                 // خيار التدوير
                 Row(
@@ -85,25 +88,44 @@ fun NestingScreen(
                 ) {
                     Text("السماح بتدوير القطع")
                     Spacer(Modifier.width(8.dp))
-                    Switch(
-                        checked = vm.allowRotation,
-                        onCheckedChange = { vm.allowRotation = it }
-                    )
+                    Switch(checked = vm.allowRotation,
+                        onCheckedChange = { vm.allowRotation = it })
                 }
 
-                // تقرير الهدر
+                // زر تدوير القطعة المحددة
+                if (sel >= 0) {
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        OutlinedButton(onClick = { vm.rotatePiece(sel) }) {
+                            Text("↻  تدوير القطعة المحددة 90°")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        OutlinedButton(
+                            onClick = { vm.selectedPieceIndex = -1 },
+                            colors  = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("✕ إلغاء التحديد")
+                        }
+                    }
+                }
+
+                // إحصائيات
                 report?.let { r ->
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        StatCard("الهدر",   "%.1f%%".format(r.wastePercent),
-                            if (r.wastePercent < 20f) MaterialTheme.colorScheme.primaryContainer
+                        StatCard("الهدر",  "%.1f%%".format(r.wastePercent),
+                            if (r.wastePercent < 20f)
+                                MaterialTheme.colorScheme.primaryContainer
                             else MaterialTheme.colorScheme.errorContainer)
-                        StatCard("الطول",   "%.0f سم".format(r.fabricLength))
-                        StatCard("المساحة", "%.0f سم²".format(r.usedArea))
-                        StatCard("القطع",   "${vm.layout?.placedPieces?.size}")
+                        StatCard("الطول", "%.0f سم".format(r.fabricLength))
+                        StatCard("القطع", "${layout?.placedPieces?.size}")
                     }
                 }
 
@@ -113,7 +135,7 @@ fun NestingScreen(
                     onClick  = { vm.autoNest(pieces) },
                     modifier = Modifier.fillMaxWidth().height(48.dp)
                 ) {
-                    Text("تعشيق أوتوماتيك ✦")
+                    Text("✦  تعشيق أوتوماتيك")
                 }
             }
         }
@@ -135,7 +157,7 @@ fun NestingScreen(
             } else {
                 NestingCanvas(
                     layout          = layout,
-                    selectedIndex   = vm.selectedPieceIndex,
+                    selectedIndex   = sel,
                     onPieceSelected = { vm.selectedPieceIndex = it },
                     onPieceMoved    = { i, dx, dy -> vm.movePiece(i, dx, dy) }
                 )
@@ -145,9 +167,11 @@ fun NestingScreen(
 }
 
 @Composable
-private fun StatCard(label: String, value: String,
-    containerColor: androidx.compose.ui.graphics.Color =
-        MaterialTheme.colorScheme.primaryContainer) {
+private fun StatCard(
+    label: String,
+    value: String,
+    containerColor: Color = MaterialTheme.colorScheme.primaryContainer
+) {
     Card(colors = CardDefaults.cardColors(containerColor = containerColor)) {
         Column(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
