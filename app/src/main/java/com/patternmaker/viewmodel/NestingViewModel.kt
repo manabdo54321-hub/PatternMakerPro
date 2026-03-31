@@ -3,23 +3,37 @@ package com.patternmaker.viewmodel
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import com.patternmaker.domain.engine.NestingEngine
-import com.patternmaker.domain.engine.WasteReport
-import com.patternmaker.domain.model.NestingLayout
-import com.patternmaker.domain.model.PatternPiece
+import com.patternmaker.domain.engine.NestingReport
+import com.patternmaker.domain.engine.NestingResult
+import com.patternmaker.domain.model.*
 
 class NestingViewModel : ViewModel() {
 
-    var fabricWidth    by mutableStateOf("150")
-    var allowRotation  by mutableStateOf(true)
-    var layout         by mutableStateOf<NestingLayout?>(null)
-    var wasteReport    by mutableStateOf<WasteReport?>(null)
+    // ── إعدادات القماش ────────────────────────────────────────
+    var fabricWidth       by mutableStateOf("150")
+    var fabricLength      by mutableStateOf("")      // فارغ = أوتوماتيك
+    var quantity          by mutableStateOf("1")
+    var allowRotation     by mutableStateOf(true)
+    var respectGrainLine  by mutableStateOf(true)
+    var gap               by mutableStateOf("1.5")
+
+    // ── النتيجة ────────────────────────────────────────────────
+    var result            by mutableStateOf<NestingResult?>(null)
     var selectedPieceIndex by mutableStateOf(-1)
 
+    val layout get() = result?.layout
+    val report get() = result?.report
+
     fun autoNest(pieces: List<PatternPiece>) {
-        val width = fabricWidth.toFloatOrNull() ?: 150f
-        val result = NestingEngine.autoNest(pieces, width, allowRotation)
-        layout      = result
-        wasteReport = NestingEngine.calculateWaste(result)
+        val settings = FabricSettings(
+            width          = fabricWidth.toFloatOrNull() ?: 150f,
+            length         = fabricLength.toFloatOrNull(),
+            quantity       = quantity.toIntOrNull()?.coerceIn(1, 20) ?: 1,
+            gap            = gap.toFloatOrNull() ?: 1.5f,
+            allowRotation  = allowRotation,
+            respectGrainLine = respectGrainLine
+        )
+        result = NestingEngine.autoNest(pieces, settings)
         selectedPieceIndex = -1
     }
 
@@ -27,13 +41,12 @@ class NestingViewModel : ViewModel() {
         val current = layout ?: return
         val pieces  = current.placedPieces.toMutableList()
         val piece   = pieces[index]
+        val w = if (piece.rotation == 90f) piece.piece.heightCm else piece.piece.widthCm
         pieces[index] = piece.copy(
-            x = (piece.x + dx).coerceAtLeast(0f)
-                .coerceAtMost(current.fabricWidth - piece.piece.widthCm),
+            x = (piece.x + dx).coerceIn(0f, current.fabricWidth - w),
             y = (piece.y + dy).coerceAtLeast(0f)
         )
-        layout      = current.copy(placedPieces = pieces)
-        wasteReport = NestingEngine.calculateWaste(layout!!)
+        result = result?.copy(layout = current.copy(placedPieces = pieces))
     }
 
     fun rotatePiece(index: Int) {
@@ -41,6 +54,6 @@ class NestingViewModel : ViewModel() {
         val pieces  = current.placedPieces.toMutableList()
         val piece   = pieces[index]
         pieces[index] = piece.copy(rotation = (piece.rotation + 90f) % 360f)
-        layout = current.copy(placedPieces = pieces)
+        result = result?.copy(layout = current.copy(placedPieces = pieces))
     }
 }
