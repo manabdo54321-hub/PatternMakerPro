@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.patternmaker.ui.screens.MeasurementsScreen
+import com.patternmaker.ui.screens.NestingScreen
 import com.patternmaker.ui.screens.PatternScreen
 import com.patternmaker.ui.theme.PatternMakerTheme
 import com.patternmaker.viewmodel.MeasurementsViewModel
@@ -27,13 +28,17 @@ class MainActivity : ComponentActivity() {
 
                     when (screen) {
                         "measurements" -> MeasurementsScreen(
-                            viewModel = vm,
+                            viewModel          = vm,
                             onPatternGenerated = { screen = "pattern" }
                         )
                         "pattern" -> PatternScreen(
-                            pieces = vm.generatedPieces,
-                            onBack = { screen = "measurements" },
+                            pieces        = vm.generatedPieces,
+                            onBack        = { screen = "measurements" },
                             onGoToNesting = { screen = "nesting" }
+                        )
+                        "nesting" -> NestingScreen(
+                            pieces = vm.generatedPieces,
+                            onBack = { screen = "pattern" }
                         )
                     }
                 }
