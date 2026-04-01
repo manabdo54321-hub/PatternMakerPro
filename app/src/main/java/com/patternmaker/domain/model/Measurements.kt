@@ -8,6 +8,7 @@ data class Measurements(
     val length: Float = 0f,
     val legWidth: Float = 0f,
     val rise: Float = 0f,
+    val hipDepth: Float = 0f,
     val seamAllowance: Float = 1.5f,
     val ease: Float = 6f
 )
